@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阿益教學｜Pixabay 高清早安圖產生器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --accent: #f5a623;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: #fcfcfc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        /* 圖片容器 */
+        #card-container {
+            width: 380px;
+            height: 500px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+            background: #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #bg-image {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.7);
+            z-index: 1;
+        }
+
+        #card-text {
+            position: relative;
+            z-index: 2;
+            color: var(--white);
+            font-size: 36px;
+            font-weight: 900;
+            text-align: center;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
+            line-height: 1.4;
+            padding: 20px;
+        }
+
+        /* 控制面板 */
+        .panel {
+            width: 380px;
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 5px;
+        }
+
+        input, textarea {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        input { flex: 1; }
+
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-search { background: var(--primary); color: white; }
+        .btn-download { background: #e91e63; color: white; font-size: 18px; }
+        .btn-random { background: #4caf50; color: white; }
+
+        footer { margin-top: 20px; color: #888; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <h2 style="color: #4a4a4a;">早安圖產生器 (Pixabay版)</h2>
+
+    <div id="card-container">
+        <img id="bg-image" src="https://pixabay.com/get/g5a..._640.jpg" alt="請輸入關鍵字搜尋">
+        <div id="card-text">早安！<br>美好的一天<br>從心開始</div>
+    </div>
+
+    <div class="panel">
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="搜尋關鍵字 (如：荷花, 風景)">
+            <button class="btn btn-search" onclick="fetchImages()">搜尋背景</button>
+        </div>
+
+        <textarea id="text-input" rows="2" placeholder="編輯祝福文字..."></textarea>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button class="btn btn-random" onclick="setRandomQuote()">隨機金句</button>
+            <button class="btn btn-random" style="background:#8e44ad" onclick="nextImage()">換下一張</button>
+        </div>
+
+        <button class="btn btn-download" onclick="downloadImage()">下載圖片分享到 LINE</button>
+    </div>
+
+    <footer>作者：阿益教學</footer>
+
+    <script>
+        // --- 請在此處填入您的 Pixabay API Key ---
+        const PIXABAY_KEY = '在此填入您的API_KEY'; 
+        let currentImages = [];
+        let imageIndex = 0;
+
+        const quotes = [
+            "早安！\n平安就是福。",
+            "知足常樂，\n幸福就在身邊。",
+            "日日是好日，\n年年是好年。",
+            "笑口常開，\n福氣自然來。",
+            "晨光熹微，\n祝您事事如意。"
+        ];
+
+        // 從 Pixabay 獲取圖片
+        async function fetchImages() {
+            const query = document.getElementById('search-input').value || 'nature';
+            const url = `https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${encodeURIComponent(query)}&image_type=photo&orientation=vertical&per_page=20`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.hits.length > 0) {
+                    currentImages = data.hits;
+                    imageIndex = 0;
+                    displayImage(currentImages[imageIndex].largeImageURL);
+                } else {
+                    alert('找不到相關圖片，請換個詞試試！');
+                }
+            } catch (err) {
+                console.error('API 請求失敗:', err);
+                alert('API 金鑰無效或請求過多，請檢查設定。');
+            }
+        }
+
+        function displayImage(url) {
+            document.getElementById('bg-image').src = url;
+        }
+
+        function nextImage() {
+            if (currentImages.length > 0) {
+                imageIndex = (imageIndex + 1) % currentImages.length;
+                displayImage(currentImages[imageIndex].largeImageURL);
+            } else {
+                fetchImages();
+            }
+        }
+
+        function setRandomQuote() {
+            const quote = quotes[Math.floor(Math.random() * quotes.length)];
+            document.getElementById('card-text').innerText = quote;
+            document.getElementById('text-input').value = quote;
+        }
+
+        // 文字同步
+        document.getElementById('text-input').addEventListener('input', (e) => {
+            document.getElementById('card-text').innerText = e.target.value || "早安！";
+        });
+
+        // 下載圖片
+        function downloadImage() {
+            const container = document.getElementById('card-container');
+            html2canvas(container, { useCORS: true, scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `阿益教學-早安圖-${Date.now()}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+
+        window.onload = () => {
+            document.getElementById('text-input').value = "早安！\n美好的一天\n從心開始";
+            // 預設載入一些風景圖
+            fetchImages(); 
+        };
+    </script>
+</body>
+</html>
